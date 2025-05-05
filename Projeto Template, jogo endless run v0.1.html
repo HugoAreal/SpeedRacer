@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Speed Racer - Jogo de Corrida</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .background {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.95)), url('https://images.pexels.com/photos/1704120/pexels-photo-1704120.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260') no-repeat center center/cover;
+      z-index: -1;
+      filter: brightness(0.6);
+      animation: pan 20s linear infinite alternate;
+    }
+
+    @keyframes pan {
+      0% { background-position: center left; }
+      100% { background-position: center right; }
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 3.5rem;
+      color: #ff3c00;
+      text-shadow: 0 0 15px #ff3c00;
+      margin-bottom: 1rem;
+      letter-spacing: 4px;
+      animation: flicker 3s infinite alternate;
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; text-shadow: 0 0 15px #ff3c00, 0 0 30px #ff3c00; }
+      50% { opacity: 0.7; text-shadow: none; }
+    }
+
+    p.subtitle {
+      font-size: 1.25rem;
+      color: #ddd;
+      margin-bottom: 2.5rem;
+      text-shadow: 0 0 5px rgba(255,60,0,0.5);
+    }
+
+    button {
+      background: linear-gradient(45deg, #ff3c00, #ff7f50);
+      border: none;
+      border-radius: 50px;
+      padding: 1rem 3rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 20px #ff3c00;
+      transition: all 0.3s ease;
+      user-select: none;
+      outline: none;
+    }
+
+    button:hover,
+    button:focus {
+      background: linear-gradient(45deg, #ff7f50, #ff3c00);
+      box-shadow: 0 0 30px #ff7f50, 0 0 40px #ff3c00;
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    /* MOBILE OPTIMIZATIONS */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2.5rem;
+        letter-spacing: 2px;
+      }
+
+      p.subtitle {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      button {
+        padding: 0.75rem 2rem;
+        font-size: 1.25rem;
+      }
+    }
+
+    /* Game Styles */
+    #game-container {
+      display: none;
+      position: relative;
+      width: 350px;
+      height: 600px;
+      margin: 10px auto;
+      border: 4px solid #ff3c00;
+      border-radius: 15px;
+      background: #111;
+      box-shadow: 0 0 20px #ff3c00;
+      touch-action: none; /* prevent gestures on mobile */
+    }
+
+    canvas {
+      display: block;
+      border-radius: 15px;
+      background: linear-gradient(to bottom, #222, #000);
+      image-rendering: pixelated;
+    }
+
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.25rem;
+      color: #ff3c00;
+      text-shadow: 0 0 10px #ff3c00;
+      user-select: none;
+    }
+
+    #pause-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: linear-gradient(45deg, #ff3c00, #ff7f50);
+      border: none;
+      border-radius: 50px;
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 20px #ff3c00;
+      transition: all 0.3s ease;
+      user-select: none;
+      outline: none;
+      z-index: 20;
+    }
+
+    #pause-btn:hover,
+    #pause-btn:focus {
+      background: linear-gradient(45deg, #ff7f50, #ff3c00);
+      box-shadow: 0 0 30px #ff7f50, 0 0 40px #ff3c00;
+      transform: scale(1.05);
+    }
+
+    #pause-btn:active {
+      transform: scale(0.95);
+    }
+
+    #game-over {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      color: #ff3c00;
+      text-align: center;
+      background: rgba(0,0,0,0.85);
+      padding: 30px 40px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px #ff3c00;
+      user-select: none;
+      z-index: 10;
+    }
+
+    #restart-btn {
+      margin-top: 20px;
+      background: linear-gradient(45deg, #ff3c00, #ff7f50);
+      border: none;
+      border-radius: 50px;
+      padding: 0.75rem 2.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 20px #ff3c00;
+      transition: all 0.3s ease;
+      user-select: none;
+      outline: none;
+    }
+
+    #restart-btn:hover,
+    #restart-btn:focus {
+      background: linear-gradient(45deg, #ff7f50, #ff3c00);
+      box-shadow: 0 0 30px #ff7f50, 0 0 40px #ff3c00;
+      transform: scale(1.05);
+    }
+
+    #restart-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Controls overlay on mobile */
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 350px;
+      display: flex;
+      justify-content: space-between;
+      user-select: none;
+      z-index: 5;
+    }
+    #mobile-controls button {
+      background: rgba(255,60,0,0.8);
+      border: none;
+      border-radius: 50%;
+      padding: 15px 20px;
+      font-size: 1.5rem;
+      color: white;
+      box-shadow: 0 0 10px #ff3c00;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      outline: none;
+      flex: 1;
+      margin: 0 10px;
+      user-select: none;
+    }
+    #mobile-controls button:active {
+      background: #ff3c00;
+      transform: scale(0.9);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="background" aria-hidden="true"></div>
+
+  <div class="container" id="home-screen" role="main" aria-label="Homepage do jogo de corrida Speed Racer">
+    <h1>Speed Racer</h1>
+    <p class="subtitle">Prepare-se para a corrida da sua vida!</p>
+    <button id="play-btn" aria-label="Iniciar o jogo">Jogar</button>
+  </div>
+
+  <div id="game-container" role="main" aria-label="Área do jogo Speed Racer">
+    <canvas id="game-canvas" width="350" height="600" tabindex="0" aria-label="Tela do jogo Speed Racer"></canvas>
+    <div id="scoreboard" aria-live="polite">Pontuação: 0</div>
+    <button id="pause-btn" aria-label="Pausar o jogo">Pausar</button>
+    <div id="game-over" role="alert" aria-hidden="true">
+      <div>GAME OVER</div>
+      <div id="final-score" style="margin-top: 10px; font-size: 1.5rem;"></div>
+      <button id="restart-btn" aria-label="Reiniciar o jogo">Jogar Novamente</button>
+    </div>
+    <div id="mobile-controls" aria-label="Controles móveis">
+      <button id="left-btn" aria-label="Mover para a esquerda">&#8592;</button>
+      <button id="right-btn" aria-label="Mover para a direita">&#8594;</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const homeScreen = document.getElementById('home-screen');
+      const gameContainer = document.getElementById('game-container');
+      const playBtn = document.getElementById('play-btn');
+      const restartBtn = document.getElementById('restart-btn');
+      const gameOverEl = document.getElementById('game-over');
+      const finalScoreEl = document.getElementById('final-score');
+      const scoreboard = document.getElementById('scoreboard');
+      const canvas = document.getElementById('game-canvas');
+      const ctx = canvas.getContext('2d');
+      const pauseBtn = document.getElementById('pause-btn');
+
+      const mobileControls = document.getElementById('mobile-controls');
+      const leftBtn = document.getElementById('left-btn');
+      const rightBtn = document.getElementById('right-btn');
+
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+
+      let animationId;
+      let gameRunning = false;
+      let paused = false;
+
+      // Player
+      const playerWidth = 40;
+      const playerHeight = 70;
+      const laneCount = 3;
+      const laneWidth = canvasWidth / laneCount;
+
+      // Lanes center X positions
+      const lanesX = [
+        laneWidth / 2,
+        laneWidth + laneWidth / 2,
+        2 * laneWidth + laneWidth / 2
+      ];
+
+      // Player state
+      let playerLane = 1; // middle lane (0,1,2)
+      let playerY = canvasHeight - playerHeight - 20;
+
+      // Enemy cars
+      const enemyWidth = 40;
+      const enemyHeight = 70;
+      let enemies = [];
+      let enemySpeed = 6;
+      let enemySpawnInterval = 1500; // ms
+      let lastEnemySpawn = 0;
+
+      // Score
+      let score = 0;
+      let lastFrameTime = null;
+
+      // Controls state
+      const keysPressed = {};
+      let mobileLeftPressed = false;
+      let mobileRightPressed = false;
+
+      // Add roundRect polyfill for CanvasRenderingContext2D
+      if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+          if (w < 2 * r) r = w / 2;
+          if (h < 2 * r) r = h / 2;
+          this.beginPath();
+          this.moveTo(x + r, y);
+          this.arcTo(x + w, y, x + w, y + h, r);
+          this.arcTo(x + w, y + h, x, y + h, r);
+          this.arcTo(x, y + h, x, y, r);
+          this.arcTo(x, y, x + w, y, r);
+          this.closePath();
+          return this;
+        }
+      }
+
+      // Draw player car (simple)
+      function drawPlayerCar(x, y) {
+        ctx.fillStyle = '#ff3c00';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - playerWidth / 2, y, playerWidth, playerHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x - playerWidth / 4, y + 15, playerWidth / 2, 20);
+      }
+
+      // Draw enemy car (simple)
+      function drawEnemyCar(x, y) {
+        ctx.fillStyle = '#007bff';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - enemyWidth / 2, y, enemyWidth, enemyHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#cdf';
+        ctx.fillRect(x - enemyWidth / 4, y + 15, enemyWidth / 2, 20);
+      }
+
+      function drawRoad() {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        const stripeWidth = 10;
+        const stripeHeight = 50;
+        const stripeGap = 30;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+
+        // Lane lines
+        ctx.setLineDash([stripeHeight, stripeGap]);
+        ctx.lineDashOffset = (Date.now() / 15) % (stripeHeight + stripeGap);
+
+        for (let i = 1; i < laneCount; i++) {
+          const x = laneWidth * i;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvasHeight);
+          ctx.stroke();
+        }
+
+        // Center line
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([stripeHeight, stripeGap]);
+        ctx.lineDashOffset = (Date.now() / 10) % (stripeHeight + stripeGap);
+        ctx.beginPath();
+        ctx.moveTo(canvasWidth / 2, 0);
+        ctx.lineTo(canvasWidth / 2, canvasHeight);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+      }
+
+      function showGameOver() {
+        gameOverEl.style.display = 'block';
+        finalScoreEl.textContent = 'Sua pontuação: ' + score;
+        gameOverEl.setAttribute('aria-hidden', 'false');
+        pauseBtn.style.display = 'none';
+        mobileControls.style.display = 'none';
+      }
+
+      function hideGameOver() {
+        gameOverEl.style.display = 'none';
+        gameOverEl.setAttribute('aria-hidden', 'true');
+      }
+
+      function resetGame() {
+        playerLane = 1;
+        enemies = [];
+        enemySpeed = 6;
+        enemySpawnInterval = 1500;
+        lastEnemySpawn = 0;
+        score = 0;
+        lastFrameTime = null;
+        hideGameOver();
+        pauseBtn.style.display = 'block';
+      }
+
+      function spawnEnemy() {
+        const lane = Math.floor(Math.random() * laneCount);
+        enemies.push({ lane, x: lanesX[lane], y: -enemyHeight, passed: false });
+      }
+
+      // Variables to track position for smooth transition
+      let playerPosX = lanesX[1];  // current real position on X
+      let targetPlayerPosX = lanesX[1];  // target lane position on X
+
+      function lerp(start, end, amt) {
+        return (1 - amt) * start + amt * end;
+      }
+
+      function update(currentTime) {
+        if (paused) {
+          lastFrameTime = currentTime;
+          animationId = requestAnimationFrame(update);
+          return;
+        }
+
+        if (!lastFrameTime) lastFrameTime = currentTime;
+        lastFrameTime = currentTime;
+
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        drawRoad();
+
+        // Input for movement
+        if (keysPressed['ArrowLeft'] && !paused) {
+          if (playerLane > 0) {
+            playerLane--;
+            keysPressed['ArrowLeft'] = false;
+            targetPlayerPosX = lanesX[playerLane];
+          }
+        }
+        if (keysPressed['ArrowRight'] && !paused) {
+          if (playerLane < laneCount - 1) {
+            playerLane++;
+            keysPressed['ArrowRight'] = false;
+            targetPlayerPosX = lanesX[playerLane];
+          }
+        }
+        if (mobileLeftPressed && !paused) {
+          if (playerLane > 0) {
+            playerLane--;
+            targetPlayerPosX = lanesX[playerLane];
+          }
+          mobileLeftPressed = false;
+        }
+        if (mobileRightPressed && !paused) {
+          if (playerLane < laneCount - 1) {
+            playerLane++;
+            targetPlayerPosX = lanesX[playerLane];
+          }
+          mobileRightPressed = false;
+        }
+
+        // Smoothly interpolate player's X position towards target lane center
+        const smoothingSpeed = 0.3; // acelerado de 0.15 para 0.3 para transição mais rápida
+        playerPosX = lerp(playerPosX, targetPlayerPosX, smoothingSpeed);
+
+        drawPlayerCar(playerPosX, playerY);
+
+        if (currentTime - lastEnemySpawn > enemySpawnInterval && !paused) {
+          spawnEnemy();
+          lastEnemySpawn = currentTime;
+          enemySpawnInterval = Math.max(600, enemySpawnInterval * 0.95);
+          enemySpeed = Math.min(12, enemySpeed + 0.1);
+        }
+
+        // Move enemies and check collisions
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          let e = enemies[i];
+          if (!paused) e.y += enemySpeed;
+
+          drawEnemyCar(lanesX[e.lane], e.y);
+
+          if (!e.passed && e.y > playerY + playerHeight) {
+            score++;
+            e.passed = true;
+            scoreboard.textContent = 'Pontuação: ' + score;
+          }
+
+          // Revisão da colisão para considerar a caixa do jogador na posição real, não a faixa
+          // Definir caixa do jogador para colisão
+          const playerCollision = {
+            left: playerPosX - playerWidth / 2,
+            right: playerPosX + playerWidth / 2,
+            top: playerY,
+            bottom: playerY + playerHeight
+          };
+
+          const enemyCollision = {
+            left: lanesX[e.lane] - enemyWidth / 2,
+            right: lanesX[e.lane] + enemyWidth / 2,
+            top: e.y,
+            bottom: e.y + enemyHeight
+          };
+
+          // Verificar colisão retangular visual
+          const isColliding = !(playerCollision.right < enemyCollision.left ||
+                                playerCollision.left > enemyCollision.right ||
+                                playerCollision.bottom < enemyCollision.top ||
+                                playerCollision.top > enemyCollision.bottom);
+
+          if (isColliding) {
+            gameOver();
+            return;
+          }
+
+          if (e.y > canvasHeight + enemyHeight) {
+            enemies.splice(i, 1);
+          }
+        }
+
+        if (gameRunning)
+          animationId = requestAnimationFrame(update);
+      }
+
+      function gameOver() {
+        gameRunning = false;
+        cancelAnimationFrame(animationId);
+        showGameOver();
+      }
+
+      function startGame() {
+        resetGame();
+        playerPosX = lanesX[1];
+        targetPlayerPosX = lanesX[1];
+        homeScreen.style.display = 'none';
+        gameContainer.style.display = 'block';
+        mobileControls.style.display = isMobile() ? 'flex' : 'none';
+        canvas.focus();
+        gameRunning = true;
+        paused = false;
+        pauseBtn.textContent = 'Pausar';
+        pauseBtn.setAttribute('aria-label', 'Pausar o jogo');
+        lastFrameTime = null;
+        animationId = requestAnimationFrame(update);
+      }
+
+      function togglePause() {
+        if (!gameRunning) return;
+        paused = !paused;
+        pauseBtn.textContent = paused ? 'Continuar' : 'Pausar';
+        pauseBtn.setAttribute('aria-label', paused ? 'Continuar o jogo' : 'Pausar o jogo');
+
+        if (!paused) {
+          lastFrameTime = null; // reset frame time to prevent jump on resume
+          animationId = requestAnimationFrame(update);
+          mobileControls.style.display = isMobile() ? 'flex' : 'none';
+        } else {
+          mobileControls.style.display = 'none';
+        }
+      }
+
+      function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      }
+
+      // Event listeners
+      playBtn.addEventListener('click', startGame);
+      restartBtn.addEventListener('click', startGame);
+      pauseBtn.addEventListener('click', togglePause);
+
+      window.addEventListener('keydown', e => {
+        if (!gameRunning || paused) return;
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+          keysPressed[e.code] = true;
+          e.preventDefault();
+        }
+      });
+
+      window.addEventListener('keyup', e => {
+        if (!gameRunning || paused) return;
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+          keysPressed[e.code] = false;
+          e.preventDefault();
+        }
+      });
+
+      leftBtn.addEventListener('touchstart', e => {
+        if (!gameRunning || paused) return;
+        mobileLeftPressed = true;
+        e.preventDefault();
+      }, { passive: false });
+      rightBtn.addEventListener('touchstart', e => {
+        if (!gameRunning || paused) return;
+        mobileRightPressed = true;
+        e.preventDefault();
+      }, { passive: false });
+
+      gameContainer.addEventListener('touchmove', e => {
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener('load', () => {
+        canvas.setAttribute('tabindex', '0');
+      });
+    })();
+  </script>
+</body>
+</html>
+
